@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      PETFINDER_KEY: ${PETFINDER_KEY}
+      PETFINDER_SECRET: ${PETFINDER_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
+      UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY}
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    depends_on:
+      - api
+    environment:
+      REACT_APP_API_URL: http://api:3001/api
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
