@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { searchAdoptablePets } from '../api';
 
-const AdoptCard = ({ pet }) => {
+const AdoptCard = ({ pet, onAdopt }) => {
   const photo = pet.photos?.[0]?.medium || pet.photos?.[0]?.small || 'https://dummyimage.com/320x200/fff7fb/4b3d57&text=Adorable+Pet';
   const name = pet.name;
   const breed = pet.breeds?.primary || '';
@@ -22,6 +22,9 @@ const AdoptCard = ({ pet }) => {
         {pet.url && (
           <a href={pet.url} target="_blank" rel="noopener noreferrer" className="btn-brand" style={{marginTop:10,display:'inline-block'}}>Voir sur Petfinder</a>
         )}
+        <div className="pet-card-footer" style={{marginTop:12}}>
+          <button className="chip" onClick={()=>onAdopt?.(pet)}>🎉 Adopter</button>
+        </div>
       </div>
     </div>
   );
@@ -36,6 +39,7 @@ const Adopt = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pageInfo, setPageInfo] = useState({ current_page: 1, total_pages: 1 });
+  const [celebratePet, setCelebratePet] = useState(null);
   const location = useLocation();
 
   const runSearch = async () => {
@@ -53,7 +57,10 @@ const Adopt = () => {
         setPageInfo({ current_page: page, total_pages: Math.max(page, 1) });
       }
     } catch (e) {
-      setError('Search failed');
+      const msg = e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Search failed';
+      // Message plus clair si les credentials Petfinder manquent
+      const friendly = /credentials missing/i.test(String(msg)) ? "Petfinder non configuré côté serveur (renseignez PETFINDER_KEY/SECRET)." : msg;
+      setError(friendly);
     }
     setLoading(false);
   };
@@ -118,13 +125,24 @@ const Adopt = () => {
       ) : (
         <>
           <div className="pet-list">
-            {results.map(a => <AdoptCard key={a.id} pet={a} />)}
+            {results.map(a => <AdoptCard key={a.id} pet={a} onAdopt={(p)=>{ setCelebratePet(p); setTimeout(()=>setCelebratePet(null), 3600); }} />)}
           </div>
           <div style={{display:'flex',justifyContent:'center',gap:10,margin:'16px 0'}}>
             <button className="chip" disabled={page<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>← Précédent</button>
             <div className="chip">Page {pageInfo.current_page} / {pageInfo.total_pages}</div>
             <button className="chip" disabled={pageInfo.current_page>=pageInfo.total_pages} onClick={()=>setPage(p=>p+1)}>Suivant →</button>
           </div>
+          {celebratePet && (
+            <div className="celebrate-overlay">
+              <div className="celebrate-card">
+                <div className="celebrate-title">Félicitations 🎉</div>
+                <div className="celebrate-sub">{celebratePet.name} est tout heureux !</div>
+                <div className="celebrate-emojis">
+                  <span>🐶</span><span>❤️</span><span>🎉</span><span>🐾</span><span>✨</span>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

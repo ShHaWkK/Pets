@@ -250,6 +250,44 @@
   background: rgba(255,255,255,0.85);
 }
 
+/* Adoption celebration overlay */
+.celebrate-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.celebrate-card {
+  background: var(--glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 22px;
+  padding: 26px 28px;
+  box-shadow: var(--shadow-strong);
+  text-align: center;
+  animation: popIn .35s ease-out;
+}
+.celebrate-title { font-size: 1.6rem; color: var(--rose-500); font-weight: 800; }
+.celebrate-sub { color: var(--muted); margin-top: 6px; }
+.celebrate-emojis { margin-top: 14px; display: flex; gap: 10px; justify-content: center; }
+.celebrate-emojis span { font-size: 24px; animation: floatUp 1.8s ease-in-out infinite; }
+.celebrate-emojis span:nth-child(2) { animation-delay: .2s; }
+.celebrate-emojis span:nth-child(3) { animation-delay: .4s; }
+.celebrate-emojis span:nth-child(4) { animation-delay: .6s; }
+.celebrate-emojis span:nth-child(5) { animation-delay: .8s; }
+
+@keyframes popIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes floatUp {
+  0% { transform: translateY(6px); opacity: .85; }
+  50% { transform: translateY(-6px); opacity: 1; }
+  100% { transform: translateY(6px); opacity: .85; }
+}
+
 .modal-content button {
   width: 100%;
   padding: 15px;

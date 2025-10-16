@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || (process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api');
+// Détermine l'URL de l'API côté client
+// - En dev: http://localhost:3001/api
+// - En prod: si on est en localhost (ex: preview sur 3002), utilise 3001; sinon '/api'
+const isBrowser = typeof window !== 'undefined';
+const isLocalHost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const API_URL = process.env.REACT_APP_API_URL
+  || (process.env.NODE_ENV === 'production'
+      ? (isLocalHost ? 'http://localhost:3001/api' : '/api')
+      : 'http://localhost:3001/api');
 
 const api = axios.create({ baseURL: API_URL });
 api.interceptors.request.use((config) => {

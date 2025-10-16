@@ -3,6 +3,14 @@ const cors = require('cors');
 const store = require('./store');
 const fetch = global.fetch || ((...args) => import('node-fetch').then(({default: f}) => f(...args)));
 const crypto = require('crypto');
+const path = require('path');
+
+// Charge les variables d'environnement depuis le .env à la racine du projet
+try {
+  require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+} catch (_) {
+  // si dotenv n'est pas installé ou fichier absent, on continue avec process.env
+}
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -130,6 +138,37 @@ let catBreedsCache = null;
 function normalizeTokens(str) {
   return String(str || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim().split(/\s+/).filter(Boolean);
 }
+function tokensIncludeAll(tokens, required) {
+  const set = new Set(tokens);
+  return required.every(r => set.has(r));
+}
+// Mapping de races FR -> Dog CEO (breed/sub-breed) pour mieux dissocier "race" et "origine"
+const DOG_FRENCH_MAP = [
+  { match: ['bouledogue','francais'], path: ['bulldog','french'] },
+  { match: ['bouledogue','français'], path: ['bulldog','french'] },
+  { match: ['berger','allemand'], path: ['shepherd','german'] },
+  { match: ['retriever','golden'], path: ['retriever','golden'] },
+  { match: ['labrador'], path: ['labrador'] },
+  { match: ['border','collie'], path: ['collie','border'] },
+  { match: ['caniche'], path: ['poodle'] },
+  { match: ['teckel'], path: ['dachshund'] },
+  { match: ['chow'], path: ['chow'] },
+  { match: ['corgi','pembroke'], path: ['corgi','pembroke'] },
+  { match: ['corgi'], path: ['corgi'] },
+  { match: ['shiba','inu'], path: ['shiba'] },
+  { match: ['akita'], path: ['akita'] },
+  { match: ['husky','siberien'], path: ['husky'] },
+  { match: ['husky','sibérien'], path: ['husky'] },
+  { match: ['rottweiler'], path: ['rottweiler'] },
+  { match: ['dalmatien'], path: ['dalmatian'] },
+  { match: ['beagle'], path: ['beagle'] },
+];
+function resolveDogFrenchPath(tokens) {
+  for (const m of DOG_FRENCH_MAP) {
+    if (tokensIncludeAll(tokens, normalizeTokens(m.match.join(' ')))) return m.path;
+  }
+  return null;
+}
 async function getDogBreeds() {
   if (dogBreedsCache) return dogBreedsCache;
   try {
@@ -144,6 +183,15 @@ async function getDogBreeds() {
 async function resolveDogBreedImage(breedText) {
   const tokens = normalizeTokens(breedText);
   const list = await getDogBreeds();
+  // D'abord essayer le mapping FR explicite (race + origine)
+  const frPath = resolveDogFrenchPath(tokens);
+  if (frPath) {
+    const url = `https://dog.ceo/api/breed/${frPath.join('/')}/images/random`;
+    try {
+      const d = await fetch(url).then(r=>r.json());
+      if (d?.message) return d.message;
+    } catch {}
+  }
   // Try exact breed match first
   for (const [breed, subs] of Object.entries(list)) {
     if (tokens.includes(breed)) {
@@ -177,8 +225,22 @@ async function getCatBreeds() {
 async function resolveCatBreedImage(breedText) {
   const tokens = normalizeTokens(breedText);
   const list = await getCatBreeds();
+  // Mapping FR -> EN de quelques races courantes
+  const frToEn = [
+    { fr: ['siamois'], en: 'siamese' },
+    { fr: ['persan'], en: 'persian' },
+    { fr: ['britannique','court','poil'], en: 'british shorthair' },
+    { fr: ['british','shorthair'], en: 'british shorthair' },
+    { fr: ['maine','coon'], en: 'maine coon' },
+    { fr: ['chartreux'], en: 'chartreux' },
+    { fr: ['ragdoll'], en: 'ragdoll' }
+  ];
+  let preferredName = '';
+  for (const m of frToEn) {
+    if (tokensIncludeAll(tokens, m.fr)) { preferredName = m.en; break; }
+  }
   for (const b of list) {
-    const nameTokens = normalizeTokens(b.name);
+    const nameTokens = normalizeTokens(preferredName || b.name);
     const allPresent = nameTokens.every(t => tokens.includes(t));
     if (allPresent) {
       try {
