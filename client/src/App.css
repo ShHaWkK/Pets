@@ -301,4 +301,7 @@
   transition: transform .16s ease, box-shadow .16s ease;
 }
 .modal-content button:hover { transform: translateY(-1px); box-shadow: var(--shadow-strong); }
+.chip {
+  font-family: 'Steph', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
 

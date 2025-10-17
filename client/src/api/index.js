@@ -28,6 +28,8 @@ export const addMoment = (petId, moment) => api.post(`/pets/${petId}/moments`, m
 
 // Petfinder adoption search
 export const searchAdoptablePets = (params) => api.get(`/petfinder/search`, { params });
+// NEW: Petfinder animal details by ID
+export const getPetfinderAnimal = (id) => api.get(`/petfinder/animals/${id}`);
 
 // Auth
 export const login = (email, password) => api.post(`/auth/login`, { email, password });

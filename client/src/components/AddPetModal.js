@@ -17,6 +17,7 @@ const AddPetModal = ({ onSave, onClose }) => {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [avatarData, setAvatarData] = useState('');
   const [saving, setSaving] = useState(false);
+  const [preferences, setPreferences] = useState('');
 
   const onFileChange = async (e) => {
     const f = e.target.files?.[0];
@@ -29,7 +30,7 @@ const AddPetModal = ({ onSave, onClose }) => {
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
-    await onSave({ name: name.trim(), breed: breed.trim(), species, birthday, avatar: avatarData, story: story.trim() });
+    await onSave({ name: name.trim(), breed: breed.trim(), species, birthday, avatar: avatarData, story: story.trim(), preferences: preferences.trim() });
     setSaving(false);
   };
 
@@ -76,6 +77,10 @@ const AddPetModal = ({ onSave, onClose }) => {
         <div>
           <label>Story</label>
           <textarea value={story} onChange={(e)=>setStory(e.target.value)} placeholder="Sa petite histoire, ses habitudes, ce qu’il aime…" rows={4} />
+        </div>
+        <div>
+          <label>Preferences / Hobbies</label>
+          <textarea value={preferences} onChange={(e)=>setPreferences(e.target.value)} placeholder="Ce qu’il aime faire, loisirs, routines…" rows={3} />
         </div>
         <button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Create Profile'}</button>
       </div>

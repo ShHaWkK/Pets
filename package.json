@@ -1,0 +1,11 @@
+{
+  "name": "pets-root",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Unified dev scripts for Pets project",
+  "scripts": {
+    "dev": "npx concurrently -c auto -n api,web \"npm --prefix server run dev\" \"npm --prefix client start\"",
+    "dev:api": "npm --prefix server run dev",
+    "dev:web": "npm --prefix client start"
+  }
+}

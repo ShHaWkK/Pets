@@ -36,7 +36,8 @@ app.post('/api/pets', (req, res) => {
     species: body.species || '',
     birthday: body.birthday || '',
     avatar: body.avatar || '',
-    story: body.story || ''
+    story: body.story || '',
+    preferences: body.preferences || ''
   });
   res.status(201).json(created);
 });
@@ -122,7 +123,28 @@ app.get('/api/petfinder/search', async (req, res) => {
       page: req.query.page || '1'
     });
     if (req.query.age) params.set('age', req.query.age);
+    // Optional breed and name filters (with FR->EN mapping for common cases)
+    if (req.query.breed) {
+      const normBreed = normalizeBreedForPetfinder((req.query.type||'').toLowerCase(), String(req.query.breed));
+      if (normBreed) params.set('breed', normBreed);
+    }
+    if (req.query.name) params.set('name', req.query.name);
     const resp = await fetch('https://api.petfinder.com/v2/animals?'+params.toString(), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const json = await resp.json();
+    res.json(json);
+  } catch (e) {
+    res.status(500).json({ error: 'petfinder_failed', message: e.message });
+  }
+});
+
+// NEW: Petfinder animal details by ID
+app.get('/api/petfinder/animals/:id', async (req, res) => {
+  try {
+    const token = await getPetfinderToken();
+    const id = encodeURIComponent(String(req.params.id));
+    const resp = await fetch(`https://api.petfinder.com/v2/animals/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     const json = await resp.json();
@@ -137,6 +159,63 @@ let dogBreedsCache = null;
 let catBreedsCache = null;
 function normalizeTokens(str) {
   return String(str || '').toLowerCase().replace(/[^a-z]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+}
+// FR -> EN mapping for Petfinder 'breed' parameter (common breeds)
+function normalizeBreedForPetfinder(type, breedText) {
+  const tokens = normalizeTokens(breedText);
+  const join = (arr) => arr.join(' ');
+  const dogs = [
+    { fr: ['bouledogue','francais'], en: 'French Bulldog' },
+    { fr: ['bouledogue','français'], en: 'French Bulldog' },
+    { fr: ['bouledogue','anglais'], en: 'Bulldog' },
+    { fr: ['berger','allemand'], en: 'German Shepherd Dog' },
+    { fr: ['berger','belge'], en: 'Belgian Shepherd / Malinois' },
+    { fr: ['berger','australien'], en: 'Australian Shepherd' },
+    { fr: ['golden','retriever'], en: 'Golden Retriever' },
+    { fr: ['labrador'], en: 'Labrador Retriever' },
+    { fr: ['border','collie'], en: 'Border Collie' },
+    { fr: ['teckel'], en: 'Dachshund' },
+    { fr: ['carlin'], en: 'Pug' },
+    { fr: ['corgi'], en: 'Corgi' },
+    { fr: ['husky','siberien'], en: 'Siberian Husky' },
+    { fr: ['husky','sibérien'], en: 'Siberian Husky' },
+    { fr: ['shiba'], en: 'Shiba Inu' },
+    { fr: ['akita'], en: 'Akita' },
+    { fr: ['chow','chow'], en: 'Chow Chow' },
+    { fr: ['caniche'], en: 'Poodle' },
+    { fr: ['chihuahua'], en: 'Chihuahua' },
+    { fr: ['rottweiler'], en: 'Rottweiler' },
+    { fr: ['dalmatien'], en: 'Dalmatian' },
+    { fr: ['beagle'], en: 'Beagle' },
+  ];
+  const cats = [
+    { fr: ['siamois'], en: 'Siamese' },
+    { fr: ['maine','coon'], en: 'Maine Coon' },
+    { fr: ['persan'], en: 'Persian' },
+    { fr: ['ragdoll'], en: 'Ragdoll' },
+    { fr: ['chartreux'], en: 'Chartreux' },
+    { fr: ['britannique','court','poil'], en: 'British Shorthair' },
+    { fr: ['bengal'], en: 'Bengal' },
+    { fr: ['scottish','fold'], en: 'Scottish Fold' },
+    { fr: ['norvegien'], en: 'Norwegian Forest Cat' },
+    { fr: ['norvégien'], en: 'Norwegian Forest Cat' },
+    { fr: ['sphynx'], en: 'Sphynx' },
+    { fr: ['abyssin'], en: 'Abyssinian' },
+    { fr: ['bleu','russe'], en: 'Russian Blue' },
+    { fr: ['angora','turc'], en: 'Turkish Angora' },
+    { fr: ['oriental'], en: 'Oriental' },
+    { fr: ['birman'], en: 'Birman' },
+    { fr: ['savannah'], en: 'Savannah' },
+    { fr: ['bombay'], en: 'Bombay' },
+  ];
+  const table = type === 'cat' ? cats : dogs;
+  for (const m of table) {
+    const mTokens = normalizeTokens(join(m.fr));
+    if (mTokens.every(t => tokens.includes(t))) return m.en;
+  }
+  // If already english-looking, return the original
+  if (/^[a-z0-9 .-]+$/i.test(String(breedText||''))) return String(breedText||'').trim();
+  return String(breedText||'').trim();
 }
 function tokensIncludeAll(tokens, required) {
   const set = new Set(tokens);
@@ -233,7 +312,19 @@ async function resolveCatBreedImage(breedText) {
     { fr: ['british','shorthair'], en: 'british shorthair' },
     { fr: ['maine','coon'], en: 'maine coon' },
     { fr: ['chartreux'], en: 'chartreux' },
-    { fr: ['ragdoll'], en: 'ragdoll' }
+    { fr: ['ragdoll'], en: 'ragdoll' },
+    { fr: ['bengal'], en: 'bengal' },
+    { fr: ['scottish','fold'], en: 'scottish fold' },
+    { fr: ['norvegien'], en: 'norwegian forest' },
+    { fr: ['norvégien'], en: 'norwegian forest' },
+    { fr: ['sphynx'], en: 'sphynx' },
+    { fr: ['abyssin'], en: 'abyssinian' },
+    { fr: ['bleu','russe'], en: 'russian blue' },
+    { fr: ['angora','turc'], en: 'turkish angora' },
+    { fr: ['oriental'], en: 'oriental' },
+    { fr: ['birman'], en: 'birman' },
+    { fr: ['savannah'], en: 'savannah' },
+    { fr: ['bombay'], en: 'bombay' }
   ];
   let preferredName = '';
   for (const m of frToEn) {
